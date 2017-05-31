@@ -42,7 +42,10 @@ Key to diagrams:
  - 2.3 Authority Contact: Verify identity of sender
  - 2.4 Authority Contact: Verify certificate format
  - 2.5 Authority Contact: Add certificate to registry
+     - Registry Tool should assign an ID to the key
+     - A JWK JKU URL should be returned.
  - 2.6 Producer: Send confirmation with Producer ID
+     - The JKU should be sent back to the Producer for inclusion in future messages.
 
 #### Failure Conditions
 
@@ -102,6 +105,7 @@ Validate the format and contents of a certificate.
 #### Failure
 
  - Will return "Error: Cannot read" if the certificate cannot be read because it is corrupted or the wrong format.
+ - Will return "Error: Private Key included" if the certificate doesn't contain ONLY the public key.
  - Will return "Error: Wrong algorithm" if the algorithm is not RS256 
  
 ### Upload Certificate
@@ -117,5 +121,6 @@ If the certificate is uploaded correctly, it will return "OK".
 #### Failure
 
  - Will return error codes from `validate` if the certificate isn't valid.
+ - Will return error if Produce ID doesn't exist.
  - Will return "Error: Can't connect to bucket" if it's not possible to upload the key.
 

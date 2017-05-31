@@ -8,6 +8,7 @@
                  [com.nimbusds/nimbus-jose-jwt "4.34"]
                  [yogthos/config "0.8"]
                  [clj-time "0.12.2"]
+                 [event-data-common "0.1.26"]
                  [com.amazonaws/aws-java-sdk "1.11.61"]]
   :main ^:skip-aot dul-authority-tool.core
   :target-path "target/%s"
