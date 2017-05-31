@@ -4,8 +4,13 @@
             [event-data-common.storage.s3 :as s3]
             [event-data-common.storage.memory :as memory]
             [event-data-common.storage.store :as store]
-            [clojure.set])
-  (:import [com.nimbusds.jose.jwk JWK]))
+            [clojure.set]
+            [clj-time.coerce :as clj-time-coerce]
+            [clj-time.core :as clj-time])
+  (:import [com.nimbusds.jose.jwk JWK]
+           [com.amazonaws.services.cloudfront AmazonCloudFrontClient]
+           [com.amazonaws.services.cloudfront.model CreateInvalidationRequest Paths InvalidationBatch]
+           [com.amazonaws.auth BasicAWSCredentials]))
 
 (def required-config-keys
   #{:s3-key
@@ -33,6 +38,17 @@
 
    (when (.endsWith (:public-base env) "/")
     (throw (new Exception "PUBLIC_BASE should not end with a slash."))))
+
+(defn invalidate-cloudfront
+  "Invalidate indexes in Cloudfront Distribution"
+  []
+  (println "Sending Invalidation...")
+  (let [client (new AmazonCloudFrontClient (new BasicAWSCredentials (:s3-key env) (:s3-secret env)))
+        paths (-> (new Paths) (.withItems ["/*"]) (.withQuantity (int 1)))
+        batch (new InvalidationBatch paths (str (clj-time-coerce/to-long (clj-time/now))))
+        request (new CreateInvalidationRequest (:cloudfront-distribution-id env) batch)
+        invalidation (.createInvalidation client request)]  
+  (println "Done sending Invalidation...")))
 
 (def prefix
   "All producer information starts with this prefix."
@@ -137,7 +153,8 @@
       (throw (new Exception "Producer ID already exists.")))
     (println "Saving...")
     (add-producer-info id producer-info)
-    (println "Done")))
+    (println "Done"))
+  (invalidate-cloudfront))
 
 (defn main-verify
   "Verify certificate at path."
@@ -157,7 +174,8 @@
 
   (let [result (upload-cert producer-id cert-path)]
     (println "Success!")
-    (println "URL:" result)))
+    (println "URL:" result))
+  (invalidate-cloudfront))
 
 (defn -main
   [& args]
@@ -170,6 +188,7 @@
       "add" (main-add)
       "verify" (main-verify (second args))
       "upload" (main-upload (second args) (nth args 2))
+      "invalidate" (invalidate-cloudfront)
 
       (println "Error: didn't recognise command"))
 

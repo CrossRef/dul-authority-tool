@@ -4,6 +4,7 @@
             [dul-authority-tool.core :as core]
             [event-data-common.storage.store :as store]))
 
+
 (defn clear
   []
   (doseq [k (store/keys-matching-prefix @core/connection "")]
