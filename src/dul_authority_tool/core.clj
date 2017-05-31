@@ -29,8 +29,10 @@
     (doseq [key-name required-config-keys]
       (when-not (env key-name)
         (println "Missing config key:" (name key-name))))
-    (prn "CC" missing-keys)
-    (throw (new Exception "Config keys missing"))))
+    (throw (new Exception "Config keys missing")))
+
+   (when (.endsWith (:public-base env) "/")
+    (throw (new Exception "PUBLIC_BASE should not end with a slash."))))
 
 (def prefix
   "All producer information starts with this prefix."
@@ -70,7 +72,6 @@
         k (str prefix producer-id "/info.json")]
     (store/set-string @connection k serialized)))
 
-
 (defn verify-cert
   [cert-path]
   (when-not (.exists (new java.io.File cert-path))
@@ -85,6 +86,23 @@
       (throw (new Exception "Private key incorrectly supplied.")))
 
     true))
+
+(defn upload-cert
+  "Upload the certificate and return tuple of [storage-key public-url]. 
+   Verify Producer ID and Certificate format first."
+  [producer-id cert-path]
+
+  (when-not (producer-id-exists? producer-id)
+    (throw (new Exception "Producer ID doesn't exist.")))
+
+  ; Will throw exception and log on error.
+  (verify-cert cert-path)
+    
+  (let [filename (str (System/currentTimeMillis) ".json")
+        k (str prefix producer-id "/jku/" filename)
+        url (str (:public-base env) "/" k)]
+    (store/set-string @connection k (slurp cert-path))
+  url))
 
 (defn main-list
   "Print list of Producer IDs."
@@ -128,6 +146,19 @@
   (when (verify-cert cert-path)
     (println "Verified OK!")))
 
+(defn main-upload
+  [producer-id cert-path]
+  
+  ; Will throw exception on error.
+  (verify-cert cert-path)
+
+  (when-not (producer-id-exists? producer-id)
+    (throw (new Exception "Producer ID doesn't exist")))
+
+  (let [result (upload-cert producer-id cert-path)]
+    (println "Success!")
+    (println "URL:" result)))
+
 (defn -main
   [& args]
   (try
@@ -138,6 +169,7 @@
       "list" (main-list)
       "add" (main-add)
       "verify" (main-verify (second args))
+      "upload" (main-upload (second args) (nth args 2))
 
       (println "Error: didn't recognise command"))
 

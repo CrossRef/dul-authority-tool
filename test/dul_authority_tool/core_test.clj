@@ -1,5 +1,6 @@
 (ns dul-authority-tool.core-test
   (:require [clojure.test :refer :all]
+            [config.core :refer [env]]
             [dul-authority-tool.core :as core]
             [event-data-common.storage.store :as store]))
 
@@ -60,3 +61,35 @@
   "Verify Cert should accept good certificates"
   (is (true? (core/verify-cert "resources/test/good-256.json"))
     "Should return true when certificate is what we expect."))
+
+(deftest upload-cert-problems
+  (testing "Uploading a certificate with a non-existent Producer ID should throw an error.")
+  (clear)
+
+  (is (thrown? Exception
+    (core/upload-cert "PRODUCER-123" "resources/test/good-256.json"))
+    "Should throw exception when producer ID doesn't exist.")
+
+  (core/add-producer-info "PRODUCER-123" {:name "Producer 123" :email "info@example.com"})
+  (is (core/upload-cert "PRODUCER-123" "resources/test/good-256.json")
+    "Should succeed with good certificate when the Producer ID exists.")
+
+  (is (thrown? Exception
+        (core/upload-cert "PRODUCER-123" "resources/test/es-256.json"))
+    "Should throw exception when certificate is invalid and Producer ID exists."))
+
+(deftest upload-cert-ok
+  (testing "Uploading certificate results in a URL on success"
+    (clear)
+    (core/add-producer-info "PRODUCER-123" {:name "Producer 123" :email "info@example.com"})
+    (let [result (core/upload-cert "PRODUCER-123" "resources/test/good-256.json")]
+      (is result "On success should return something")
+      (is (new java.net.URL result) "Returned value should be URL")
+      (is (=
+            (store/get-string @core/connection
+                         (.substring result
+                                     (inc (.length (:public-base env)))
+                                     (.length result)))
+            (slurp "resources/test/good-256.json"))
+          "Certificate should exist in storage and be the same as input file."))))
+
