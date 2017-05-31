@@ -89,6 +89,15 @@
         email (do (println "Contact email:") (read-line))
         producer-info {:id id :website website :name nom :email email}]
     
+    (when (clojure.string/blank? id)
+      (throw (new Exception "id is blank")))
+
+    (when (clojure.string/blank? website)
+      (throw (new Exception "website is blank")))
+
+    (when (clojure.string/blank? nom)
+      (throw (new Exception "name is blank")))
+
     (when (producer-id-exists? id)
       (throw (new Exception "Producer ID already exists.")))
     (println "Saving...")
