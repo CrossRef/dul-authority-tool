@@ -4,7 +4,8 @@
             [event-data-common.storage.s3 :as s3]
             [event-data-common.storage.memory :as memory]
             [event-data-common.storage.store :as store]
-            [clojure.set]))
+            [clojure.set])
+  (:import [com.nimbusds.jose.jwk JWK]))
 
 (def required-config-keys
   #{:s3-key
@@ -69,6 +70,22 @@
         k (str prefix producer-id "/info.json")]
     (store/set-string @connection k serialized)))
 
+
+(defn verify-cert
+  [cert-path]
+  (when-not (.exists (new java.io.File cert-path))
+    (throw (new Exception "File doesn't exist")))
+
+  ; Throws java.text.ParseException
+  (let [k (JWK/parse (slurp cert-path))]
+    (when-not (= "RS256" (.getName (.getAlgorithm k)))
+      (throw (new Exception "Wrong algorithm used for certificate.")))
+
+    (when (.isPrivate k)
+      (throw (new Exception "Private key incorrectly supplied.")))
+
+    true))
+
 (defn main-list
   "Print list of Producer IDs."
   []
@@ -104,6 +121,13 @@
     (add-producer-info id producer-info)
     (println "Done")))
 
+(defn main-verify
+  "Verify certificate at path."
+  [cert-path]
+  ; Exception thrown on error and printed in -main.
+  (when (verify-cert cert-path)
+    (println "Verified OK!")))
+
 (defn -main
   [& args]
   (try
@@ -113,6 +137,7 @@
     (condp = (first args)
       "list" (main-list)
       "add" (main-add)
+      "verify" (main-verify (second args))
 
       (println "Error: didn't recognise command"))
 

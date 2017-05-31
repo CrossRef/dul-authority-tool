@@ -28,11 +28,35 @@
             {"PRODUCER-123" {"name" "Producer 123", "email" "info@example.com"}
              "PRODUCER-987" {"name" "Producer 987", "email" "info@example.net"}})
           "Producer infos should have complete info for both Producer IDs."))
+    (clear)))
 
-    (core/main-list)
+(deftest verify-cert-bad
+  "Verify Cert should reject bad certificates"
+  (is (thrown? Exception
+    (core/verify-cert "resources/test/doesnt-exist.json")
+    "Exception should be thrown if there's no file at the certificate path."))
 
-    (clear)
+  (is (thrown? Exception
+    (core/verify-cert "resources/test/corrupted-good-256.json")
+    "Exception should be thrown if file isn't valid JSON."))
 
-    (core/main-list)
+  (is (thrown? Exception
+    (core/verify-cert "resources/test/es-256.json")
+    "Exception should be thrown if wrong algorithm type (Elliptic curve) is used."))
 
-    ))
+  (is (thrown? Exception
+    (core/verify-cert "resources/test/hs-256.json")
+    "Exception should be thrown if wrong algorithm type (HMAC) is used."))
+
+  (is (thrown? Exception
+    (core/verify-cert "resources/test/keypair.json")
+    "Exception should be thrown if wrong cerficiate type (public/private key pair) is used."))
+
+  (is (thrown? Exception
+    (core/verify-cert "resources/test/public-384.json")
+    "Exception should be thrown if wrong algorithm variant is used.")))
+
+(deftest verify-cert-good
+  "Verify Cert should accept good certificates"
+  (is (true? (core/verify-cert "resources/test/good-256.json"))
+    "Should return true when certificate is what we expect."))

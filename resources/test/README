@@ -1,0 +1,18 @@
+Test certificates
+
+These were generated using https://mkjwk.org/
+
+Files that should be rejected
+
+ - keypair.json - keypair that incorrectly includes a keypair of public and private
+ - public-384.json - public key using wrong RSA algorithm
+ - es-256.json - public key using wrong algorithm (ES256)
+ - hs-256.json - shared HMAC secret
+ - corrupted-good-256.json - all good except for a missing character that makes in invalid JSON
+ - corrupted-key-good-256.json - as good except first character of signature is missing
+
+Good files
+
+ - good-256.json - a good RSA256 public key
+
+The file doesnt-exist.json shoudln't exist.
