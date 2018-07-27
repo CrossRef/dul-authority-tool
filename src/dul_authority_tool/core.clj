@@ -7,7 +7,7 @@
             [clojure.set]
             [clj-time.coerce :as clj-time-coerce]
             [clj-time.core :as clj-time])
-  (:import [com.nimbusds.jose.jwk JWK]
+  (:import [com.nimbusds.jose.jwk JWK JWKSet]
            [com.amazonaws.services.cloudfront AmazonCloudFrontClient]
            [com.amazonaws.services.cloudfront.model CreateInvalidationRequest Paths InvalidationBatch]
            [com.amazonaws.auth BasicAWSCredentials]))
@@ -60,7 +60,7 @@
 ; Information about the producer. This indicates the existence of a Producer.
 ; 
 ; p/«PRODUCER_ID»/jku/«CERTIFICATE».json
-; Any number of JWK public keys for the Producer
+; Any number of JWKSet public keys for the Producer
 
 (defn all-producer-infos
   "List all Producer IDs and their info
@@ -94,12 +94,13 @@
     (throw (new Exception "File doesn't exist")))
 
   ; Throws java.text.ParseException
-  (let [k (JWK/parse (slurp cert-path))]
-    (when-not (= "RS256" (.getName (.getAlgorithm k)))
-      (throw (new Exception "Wrong algorithm used for certificate.")))
+  (let [ks (JWKSet/parse (slurp cert-path))]
+    (doseq [k (.getKeys ks)]
+      (when-not (= "RSA" (.getValue (.getKeyType k)))
+        (throw (new Exception "Wrong algorithm used for certificate.")))
 
-    (when (.isPrivate k)
-      (throw (new Exception "Private key incorrectly supplied.")))
+      (when (.isPrivate k)
+        (throw (new Exception "Private key incorrectly supplied."))))
 
     true))
 
@@ -194,5 +195,5 @@
 
     (catch Exception ex
       (do
-        (println "Terminating with error:" (.getMessage ex))
+        (println "Terminating with error:" ex)
         (System/exit 1)))))
