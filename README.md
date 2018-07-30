@@ -59,4 +59,4 @@ Upload a certificate to the store.
     ./test.sh
 
 
-`PUBLIC_BASE` should be base URL from which files are served, for example `https://dul-token.crossref.org`. It is used when constructing URLs in indexes.
+`PUBLIC_BASE` should be base URL from which files are served, for example `https://dul.crossref.org`. It is used when constructing URLs in indexes.
